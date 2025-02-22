@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import com.example.myapplication.R
 import kotlinx.coroutines.delay
 
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,6 +56,13 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
     val tasksState = remember { mutableStateListOf(false, false, false) }
     // Level state (starting at 1)
     val level = remember { mutableStateOf(1) }
+
+    // Controls the scrapbook task window
+    val isScrapbookVisible = remember { mutableStateOf(isTaskWindowVisible) }
+
+
+
+
 
     // Watch for all tasks to be completed; if so, level up and reset tasks.
     LaunchedEffect(tasksState.toList()) {
@@ -183,7 +191,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
 
             // Scrapbook Icon (Bottom Right)
             IconButton(
-                onClick = { /* Navigate to Scrapbook Screen */ },
+                onClick = {isScrapbookVisible.value = !isScrapbookVisible.value},
                 modifier = Modifier
                     .size(130.dp)
                     .align(Alignment.BottomEnd)
@@ -263,6 +271,61 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                 }
             }
         }
+
+
+        // Sliding Task Window
+        AnimatedVisibility(
+            visible = isScrapbookVisible.value,
+            enter = slideInVertically(
+                animationSpec = tween(durationMillis = 300),
+                initialOffsetY = { fullHeight -> fullHeight }
+            ),
+            exit = slideOutVertically(
+                animationSpec = tween(durationMillis = 300),
+                targetOffsetY = { fullHeight -> fullHeight }
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.6f)
+                    .background(Color(0xFFF5F5DC))
+                    .padding(16.dp)
+            ) {
+                // Task rows – each toggles its checked state
+                TaskRow(
+                    taskName = "Testing",
+                    isChecked = tasksState[0],
+                    onToggle = { tasksState[0] = !tasksState[0] }
+                )
+                TaskRow(
+                    taskName = "Testing 2",
+                    isChecked = tasksState[1],
+                    onToggle = { tasksState[1] = !tasksState[1] }
+                )
+                TaskRow(
+                    taskName = "Testing 3",
+                    isChecked = tasksState[2],
+                    onToggle = { tasksState[2] = !tasksState[2] }
+                )
+                // Plus icon row for adding more tasks (if needed)
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Image(
+                        imageVector = Add,
+                        contentDescription = "Add",
+                        modifier = Modifier.size(48.dp),
+                        colorFilter = ColorFilter.tint(Color.Black)
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -306,6 +369,7 @@ fun TaskRow(taskName: String, isChecked: Boolean, onToggle: () -> Unit) {
 @Composable
 fun PreviewMainPageUI() {
     MainPageUI(isTaskWindowVisible = false)
+
 }
 
 public val Lists: ImageVector
