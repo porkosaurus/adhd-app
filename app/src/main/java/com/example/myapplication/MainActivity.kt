@@ -191,7 +191,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
 
             // Scrapbook Icon (Bottom Right)
             IconButton(
-                onClick = {isScrapbookVisible.value = !isScrapbookVisible.value},
+                onClick = { isScrapbookVisible.value = !isScrapbookVisible.value },
                 modifier = Modifier
                     .size(130.dp)
                     .align(Alignment.BottomEnd)
@@ -273,7 +273,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
         }
 
 
-        // Sliding Task Window
+        // Sliding Task Window for ScrapBook
         AnimatedVisibility(
             visible = isScrapbookVisible.value,
             enter = slideInVertically(
@@ -285,49 +285,39 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                 targetOffsetY = { fullHeight -> fullHeight }
             )
         ) {
-            Column(
+            Image(
+                painter = painterResource(id = R.drawable.scrapbook),
+                contentDescription = "Scrapbook",
+                contentScale = ContentScale.Fit,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.6f)
-                    .background(Color(0xFFF5F5DC))
-                    .padding(16.dp)
+                    .size(600.dp)
+            )
+
+            IconButton(
+                onClick = {
+                    // Action for IconButton click (you can add functionality here)
+                },
+                modifier = Modifier
+                    .size(50.dp)
+                    .padding(top = 16.dp)  // Space between image and IconButton
             ) {
-                // Task rows – each toggles its checked state
-                TaskRow(
-                    taskName = "Testing",
-                    isChecked = tasksState[0],
-                    onToggle = { tasksState[0] = !tasksState[0] }
+                Image(
+                    painter = painterResource(id = R.drawable.arrow),
+                    contentDescription = "Add Task",
+                    modifier = Modifier.fillMaxSize()
                 )
-                TaskRow(
-                    taskName = "Testing 2",
-                    isChecked = tasksState[1],
-                    onToggle = { tasksState[1] = !tasksState[1] }
-                )
-                TaskRow(
-                    taskName = "Testing 3",
-                    isChecked = tasksState[2],
-                    onToggle = { tasksState[2] = !tasksState[2] }
-                )
-                // Plus icon row for adding more tasks (if needed)
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    Image(
-                        imageVector = Add,
-                        contentDescription = "Add",
-                        modifier = Modifier.size(48.dp),
-                        colorFilter = ColorFilter.tint(Color.Black)
-                    )
-                }
             }
         }
-    }
-}
+
+
+
+
+
+
+            }
+        }
+
+
 
 @Composable
 fun TaskRow(taskName: String, isChecked: Boolean, onToggle: () -> Unit) {
