@@ -1,4 +1,4 @@
-package com.example.gardeningapp
+package com.example.myapplication
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
