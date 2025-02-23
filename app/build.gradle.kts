@@ -54,6 +54,7 @@ dependencies {
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
+    implementation("androidx.core:core-ktx:1.15.0")
     // Choose one of the following:
     // Material Design 3
     implementation("androidx.compose.material3:material3")
