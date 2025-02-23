@@ -301,6 +301,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
             }
 
             // Scrapbook Icon (Bottom Right)
+            if(!isWindowVisible.value){
             BuzzIconButton(
                 onClick = { isScrapbookVisible.value = !isScrapbookVisible.value },
                 modifier = Modifier
@@ -327,6 +328,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                     )
                 }
             }
+        }
         }
 
         // Sliding Task Window with date display, task list, plus button, and submit button
