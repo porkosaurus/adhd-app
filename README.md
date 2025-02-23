@@ -102,6 +102,21 @@ Verify Google Assistant voice control.
 
 Check large touch targets (48x48 dp min.).
 
+## Documentation 
+
+1. Login / Sign Up: User creates an account or logs in.
+
+2. Navigation & Interaction: All interactions occur on a single screen with subtle pop-ups.
+
+3. Users navigate via buttons to access:
+Scrapbook (Notes, reflections)
+
+4. Task List (Daily goals, reminders):
+Progress Tracker (Habit streaks, flower growth)
+5. Gamification & Feedback:
+Completing tasks grows the digital flower.
+Missing tasks wilts the flower.
+
 ## ⚡ Tech Stack
 
 Frontend: Jetpack Compose (Kotlin)
