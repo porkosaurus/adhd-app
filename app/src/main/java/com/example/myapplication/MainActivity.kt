@@ -35,7 +35,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -61,7 +60,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -204,24 +202,6 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
         R.drawable.flower4,
         R.drawable.flower5
     )
-
-    // ... rest of your MainPageUI code, including your LaunchedEffect:
-    LaunchedEffect(tasksState.count { it.isChecked.value }) {
-        val completedCount = tasksState.count { it.isChecked.value }
-        if (tasksState.isNotEmpty() && tasksState.all { it.isChecked.value }) {
-            delay(300)
-            level.value += 1  // Increase level
-
-
-            // Trigger a long buzz effect for level up (500ms)
-            buzz(context, duration = 750L, amplitude = 255)
-
-
-
-
-            tasksState.forEach { it.isChecked.value = false }  // Reset checkboxes
-        }
-    }
 
 
 
