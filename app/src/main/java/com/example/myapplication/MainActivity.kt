@@ -73,6 +73,19 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+fun buzz(context: Context, duration: Long = 100L, amplitude: Int = VibrationEffect.DEFAULT_AMPLITUDE) {
+    val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+    vibrator?.let {
+        if (it.hasVibrator()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                it.vibrate(VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                it.vibrate(duration)
+            }
+        }
+    }
+}
+
 @Composable
 fun MainApp() {
     var isLoggedIn by remember { mutableStateOf(false) }
@@ -182,6 +195,24 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
         R.drawable.flower4,
         R.drawable.flower5
     )
+
+    // ... rest of your MainPageUI code, including your LaunchedEffect:
+    LaunchedEffect(tasksState.count { it.isChecked.value }) {
+        val completedCount = tasksState.count { it.isChecked.value }
+        if (tasksState.isNotEmpty() && tasksState.all { it.isChecked.value }) {
+            delay(300)
+            level.value += 1  // Increase level
+
+
+            // Trigger a long buzz effect for level up (500ms)
+            buzz(context, duration = 750L, amplitude = 255)
+
+
+
+
+            tasksState.forEach { it.isChecked.value = false }  // Reset checkboxes
+        }
+    }
 
 
 
