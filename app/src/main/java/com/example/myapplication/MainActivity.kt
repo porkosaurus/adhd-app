@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
@@ -130,6 +131,18 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
 
     // Controls the scrapbook task window
     val isScrapbookVisible = remember { mutableStateOf(isTaskWindowVisible) }
+
+    val flowerIndex = remember { mutableStateOf(0) }
+
+    val flowers = listOf(
+        R.drawable.flower1,
+        R.drawable.flower2,
+        R.drawable.flower3,
+        R.drawable.flower4,
+        R.drawable.flower5
+    )
+
+
 
 
 
@@ -362,10 +375,32 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                     modifier = Modifier
                         .size(600.dp)
                 )
+                Image (
+                    painter = painterResource(id = flowers[(flowerIndex.value - 1 + flowers.size) % flowers.size]),
+                    contentDescription = "Left Flower",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .size(200.dp)
+                        .align(Alignment.CenterStart)
+                        .offset(x = 30.dp, y = (-115).dp)
+
+                )
+                Image(
+                    painter = painterResource(id = flowers[flowerIndex.value]),
+                    contentDescription = "Right Flower",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .size(200.dp)
+                        .align(Alignment.CenterEnd)
+                        .offset(x = (-30).dp,y = (-115).dp)
+
+                )
                 Box(modifier = Modifier.fillMaxSize()) {
+
                     BuzzIconButton(
                         onClick = {
                             // Action for IconButton click (you can add functionality here)
+                            flowerIndex.value = (flowerIndex.value + 1) % flowers.size
                         },
                         modifier = Modifier
                             .size(100.dp)
@@ -380,10 +415,10 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
 
                         )
                     }
+
                     BuzzIconButton(
                         onClick = {
-
-                        //functionality later
+                         flowerIndex.value = (flowerIndex.value - 1 + flowers.size) % flowers.size
                         },
                         modifier = Modifier
                             .size(100.dp)
@@ -404,15 +439,15 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                         )
 
 
-                    //Icon to return to menu:
+                        //Icon to return to menu:
 
                     }
 
                     BuzzIconButton(
                         onClick = {isScrapbookVisible.value = !isScrapbookVisible.value},
-                    modifier = Modifier.size(100.dp)
-                                .padding(top = 16.dp)
-                                 .align(Alignment.BottomCenter)
+                        modifier = Modifier.size(100.dp)
+                            .padding(top = 16.dp)
+                            .align(Alignment.BottomCenter)
                     ) {
                         Box(
                             modifier = Modifier
