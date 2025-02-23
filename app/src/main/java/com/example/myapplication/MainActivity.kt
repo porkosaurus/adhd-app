@@ -1,4 +1,4 @@
-package com.example.gardeningapp
+package com.example.myapplication
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -12,13 +12,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,6 +43,9 @@ import androidx.compose.ui.unit.sp
 import com.example.myapplication.R
 import kotlinx.coroutines.delay
 
+// Data class representing a task. The isChecked field is wrapped in a mutable state.
+data class Task(val name: String, val isChecked: androidx.compose.runtime.MutableState<Boolean> = mutableStateOf(false))
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,21 +59,21 @@ class MainActivity : ComponentActivity() {
 fun MainPageUI(isTaskWindowVisible: Boolean) {
     // Controls the sliding task window
     val isWindowVisible = remember { mutableStateOf(isTaskWindowVisible) }
-    // State for three tasks: Work out, Meditate, Study
-    val tasksState = remember { mutableStateListOf(false, false, false) }
+    // Dynamic list of tasks starting empty
+    val tasksState = remember { mutableStateListOf<Task>() }
     // Level state (starting at 1)
     val level = remember { mutableStateOf(1) }
+    // Controls visibility of the Add Task popup
+    val showAddTaskDialog = remember { mutableStateOf(false) }
 
     // Watch for all tasks to be completed; if so, level up and reset tasks.
     LaunchedEffect(tasksState.toList()) {
-        if (tasksState.all { it } && tasksState.isNotEmpty()) {
+        if (tasksState.isNotEmpty() && tasksState.all { it.isChecked.value }) {
             // Optional: delay to let the user see all tasks complete
             delay(300)
             level.value = level.value + 1
-            // Reset tasks back to false (unchecked)
-            for (i in tasksState.indices) {
-                tasksState[i] = false
-            }
+            // Reset tasks back to unchecked
+            tasksState.forEach { it.isChecked.value = false }
         }
     }
 
@@ -93,7 +101,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                 modifier = Modifier
                     .size(450.dp)
                     .align(Alignment.BottomCenter)
-                    .offset(y = if (isWindowVisible.value) 12.dp else (-135).dp),
+                    .offset(y = if (isWindowVisible.value) 12.dp else (-12).dp),
                 contentScale = ContentScale.Crop
             )
 
@@ -110,7 +118,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
             )
 
             // Progress Bar – green segments based on tasks completed
-            val completedCount = tasksState.count { it }
+            val completedCount = tasksState.count { it.isChecked.value }
             Row(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -230,39 +238,65 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                     .padding(16.dp)
             ) {
                 // Task rows – each toggles its checked state
-                TaskRow(
-                    taskName = "Work out",
-                    isChecked = tasksState[0],
-                    onToggle = { tasksState[0] = !tasksState[0] }
-                )
-                TaskRow(
-                    taskName = "Meditate",
-                    isChecked = tasksState[1],
-                    onToggle = { tasksState[1] = !tasksState[1] }
-                )
-                TaskRow(
-                    taskName = "Study",
-                    isChecked = tasksState[2],
-                    onToggle = { tasksState[2] = !tasksState[2] }
-                )
+                tasksState.forEachIndexed { index, task ->
+                    TaskRow(
+                        taskName = task.name,
+                        isChecked = task.isChecked.value,
+                        onToggle = { task.isChecked.value = !task.isChecked.value }
+                    )
+                }
                 // Plus icon row for adding more tasks (if needed)
                 Row(
                     modifier = Modifier
-                        .weight(1f)
                         .fillMaxWidth()
                         .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End
                 ) {
-                    Image(
-                        imageVector = Add,
-                        contentDescription = "Add",
-                        modifier = Modifier.size(48.dp),
-                        colorFilter = ColorFilter.tint(Color.Black)
-                    )
+                    if (tasksState.size < 3) {
+                        Image(
+                            imageVector = Add,
+                            contentDescription = "Add",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clickable { showAddTaskDialog.value = true },
+                            colorFilter = ColorFilter.tint(Color.Black)
+                        )
+                    }
                 }
             }
         }
+    }
+
+    // Add Task Popup Dialog
+    if (showAddTaskDialog.value) {
+        var newTaskName by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showAddTaskDialog.value = false },
+            title = { Text("Add Task") },
+            text = {
+                OutlinedTextField(
+                    value = newTaskName,
+                    onValueChange = { newTaskName = it },
+                    label = { Text("Task Name") }
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    if (newTaskName.isNotBlank() && tasksState.size < 3) {
+                        tasksState.add(Task(newTaskName))
+                    }
+                    showAddTaskDialog.value = false
+                }) {
+                    Text("Add")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showAddTaskDialog.value = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
@@ -300,13 +334,13 @@ fun TaskRow(taskName: String, isChecked: Boolean, onToggle: () -> Unit) {
     }
 }
 
-//ICON ROWS
-
 @Preview(showBackground = true)
 @Composable
 fun PreviewMainPageUI() {
     MainPageUI(isTaskWindowVisible = false)
 }
+
+// Icon rows
 
 public val Lists: ImageVector
     get() {
