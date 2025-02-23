@@ -44,6 +44,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import com.example.myapplication.R
 import kotlinx.coroutines.delay
+import androidx.compose.ui.graphics.graphicsLayer
+
+
 
 // Data class representing a task. The isChecked field is wrapped in a mutable state.
 data class Task(val name: String, val isChecked: androidx.compose.runtime.MutableState<Boolean> = mutableStateOf(false))
@@ -89,6 +92,13 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
     } else {
         painterResource(id = R.drawable.stage1_lily)
     }
+
+    // Controls the scrapbook task window
+    val isScrapbookVisible = remember { mutableStateOf(isTaskWindowVisible) }
+
+
+
+
 
     // Watch for all tasks to be completed; if so, level up and reset tasks.
     LaunchedEffect(tasksState.count { it.isChecked.value }) {
@@ -216,7 +226,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
 
             // Scrapbook Icon (Bottom Right)
             IconButton(
-                onClick = { /* Navigate to Scrapbook Screen */ },
+                onClick = { isScrapbookVisible.value = !isScrapbookVisible.value },
                 modifier = Modifier
                     .size(130.dp)
                     .align(Alignment.BottomEnd)
@@ -290,6 +300,109 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                 }
             }
         }
+
+
+        // Sliding Task Window for ScrapBook
+        AnimatedVisibility(
+            visible = isScrapbookVisible.value,
+            enter = slideInVertically(
+                animationSpec = tween(durationMillis = 300),
+                initialOffsetY = { fullHeight -> fullHeight }
+            ),
+            exit = slideOutVertically(
+                animationSpec = tween(durationMillis = 300),
+                targetOffsetY = { fullHeight -> fullHeight }
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight()
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.scrapbook),
+                    contentDescription = "Scrapbook",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .size(600.dp)
+                )
+                Box(modifier = Modifier.fillMaxSize()) {
+                    IconButton(
+                        onClick = {
+                            // Action for IconButton click (you can add functionality here)
+                        },
+                        modifier = Modifier
+                            .size(100.dp)
+                            .padding(top = 16.dp)
+                            .align(Alignment.BottomEnd)
+                        // Space between image and IconButton
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.arrow),
+                            contentDescription = "Add Task",
+                            modifier = Modifier
+
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+
+                        //functionality later
+                        },
+                        modifier = Modifier
+                            .size(100.dp)
+                            .padding(top = 16.dp)
+                            .align(Alignment.BottomStart)
+
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.arrow),
+                            contentDescription = "Add Task",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer(
+                                    scaleX = -1f,
+                                    scaleY = 1f
+
+                                )
+                        )
+
+
+                    //Icon to return to menu:
+
+                    }
+
+                    IconButton(
+                        onClick = {isScrapbookVisible.value = !isScrapbookVisible.value},
+                    modifier = Modifier.size(100.dp)
+                                .padding(top = 16.dp)
+                                 .align(Alignment.BottomCenter)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(500.dp)
+                                .background(
+                                    Color(0xFF71412C),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.home),
+                                contentDescription = "Scrapbook",
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .align(Alignment.Center),
+                                colorFilter = ColorFilter.tint(Color.White)
+                            )
+                        }
+
+
+                    }
+
+
+                }
+            }
+        }
     }
 
     // Add Task Popup Dialog remains unchanged...
@@ -323,6 +436,8 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
         )
     }
 }
+
+
 
 @Composable
 fun TaskRow(
@@ -386,6 +501,7 @@ fun TaskRow(
 @Composable
 fun PreviewMainPageUI() {
     MainPageUI(isTaskWindowVisible = false)
+
 }
 
 // Icon rows
