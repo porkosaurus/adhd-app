@@ -74,8 +74,6 @@ class MainActivity : ComponentActivity() {
         // Initialize Notification Helper
         notificationHelper = MyNotificationHelper(this)
 
-        // Call to show notification
-        notificationHelper.showNotification()
         setContent {
             MainApp()
         }
@@ -408,7 +406,14 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                         if (points.value >= 5) {
                             val levelsGained = points.value / 5  // Calculate how many levels to increase
                             level.value += levelsGained         // Update level which triggers the flower image update
-                            points.value %= 5                   // Retain any leftover points
+                            points.value %= 5
+
+                            // Initialize notificationHelper with the current context
+                            val notificationHelper = MyNotificationHelper(context)  // <-- Pass the valid context
+
+                            // Call to show notification
+                            notificationHelper.showNotification()
+                            // Retain any leftover points
                         }
 
                         Log.d("MainPageUI", "Completed tasks: $completedCount, Points: ${points.value}, Level: ${level.value}")
