@@ -117,6 +117,10 @@ Progress Tracker (Habit streaks, flower growth)
 Completing tasks grows the digital flower.
 Missing tasks wilts the flower.
 
+## Wireframe
+
+[Watch me](media/flowerdemo.mp4)
+
 ## ⚡ Tech Stack
 
 Frontend: Jetpack Compose (Kotlin)
