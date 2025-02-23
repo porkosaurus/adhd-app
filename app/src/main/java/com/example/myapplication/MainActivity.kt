@@ -45,7 +45,12 @@ import androidx.compose.ui.platform.LocalContext
 import com.example.myapplication.R
 import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.graphicsLayer
-
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.platform.LocalContext
+import android.content.Context // needed if you reference Context directly
 
 
 // Data class representing a task. The isChecked field is wrapped in a mutable state.
@@ -59,6 +64,36 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+@Composable
+fun BuzzIconButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    val context = LocalContext.current
+    IconButton(
+        onClick = {
+            // Trigger the buzz (vibration) effect
+            val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            vibrator?.let {
+                if (it.hasVibrator()) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        it.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
+                    } else {
+                        it.vibrate(100)
+                    }
+                }
+            }
+            // Then execute the provided onClick action
+            onClick()
+        },
+        modifier = modifier
+    ) {
+        content()
+    }
+}
+
 
 @Composable
 fun MainPageUI(isTaskWindowVisible: Boolean) {
@@ -164,6 +199,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 for (i in 0 until 3) {
+
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -197,7 +233,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
             )
 
             // Task Icon (Top Right) - toggles the task window
-            IconButton(
+            BuzzIconButton(
                 onClick = { isWindowVisible.value = !isWindowVisible.value },
                 modifier = Modifier
                     .size(100.dp)
@@ -225,7 +261,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
             }
 
             // Scrapbook Icon (Bottom Right)
-            IconButton(
+            BuzzIconButton(
                 onClick = { isScrapbookVisible.value = !isScrapbookVisible.value },
                 modifier = Modifier
                     .size(130.dp)
@@ -327,7 +363,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                         .size(600.dp)
                 )
                 Box(modifier = Modifier.fillMaxSize()) {
-                    IconButton(
+                    BuzzIconButton(
                         onClick = {
                             // Action for IconButton click (you can add functionality here)
                         },
@@ -344,7 +380,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
 
                         )
                     }
-                    IconButton(
+                    BuzzIconButton(
                         onClick = {
 
                         //functionality later
@@ -372,7 +408,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
 
                     }
 
-                    IconButton(
+                    BuzzIconButton(
                         onClick = {isScrapbookVisible.value = !isScrapbookVisible.value},
                     modifier = Modifier.size(100.dp)
                                 .padding(top = 16.dp)
@@ -419,7 +455,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                 )
             },
             confirmButton = {
-                Button(onClick = {
+                BuzzIconButton(onClick = {
                     if (newTaskName.isNotBlank() && tasksState.size < 3) {
                         tasksState.add(Task(newTaskName))
                     }
@@ -429,7 +465,9 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                 }
             },
             dismissButton = {
-                Button(onClick = { showAddTaskDialog.value = false }) {
+                BuzzIconButton(onClick = {
+                    showAddTaskDialog.value = false
+                }) {
                     Text("Cancel")
                 }
             }
@@ -461,29 +499,35 @@ fun TaskRow(
             modifier = Modifier.weight(1f)
         )
 
-        // Checkbox
         if (isChecked) {
-            Image(
-                imageVector = Check_box,
-                contentDescription = "Checked",
-                modifier = Modifier
-                    .size(40.dp)
-                    .clickable { onToggle() },
-                colorFilter = ColorFilter.tint(Color.Black)
-            )
+            BuzzIconButton(
+                onClick = { onToggle() },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Image(
+                    imageVector = Check_box,
+                    contentDescription = "Checked",
+                    modifier = Modifier.fillMaxSize(),
+                    colorFilter = ColorFilter.tint(Color.Black)
+                )
+            }
         } else {
-            Image(
-                imageVector = Check_box_outline_blank,
-                contentDescription = "Unchecked",
-                modifier = Modifier
-                    .size(40.dp)
-                    .clickable { onToggle() },
-                colorFilter = ColorFilter.tint(Color.Black)
-            )
+            BuzzIconButton(
+                onClick = { onToggle() },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Image(
+                    imageVector = Check_box_outline_blank,
+                    contentDescription = "Unchecked",
+                    modifier = Modifier.fillMaxSize(),
+                    colorFilter = ColorFilter.tint(Color.Black)
+                )
+            }
         }
 
+
         // Delete Button (Trash Icon)
-        IconButton(
+        BuzzIconButton(
             onClick = onDelete, // Call the onDelete lambda when clicked
             modifier = Modifier.size(40.dp)
         ) {
