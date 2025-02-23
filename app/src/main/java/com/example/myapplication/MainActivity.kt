@@ -1,5 +1,5 @@
 package com.example.myapplication
-//hello
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplication.R
 import kotlinx.coroutines.delay
+import androidx.compose.ui.graphics.graphicsLayer
+
 
 
 class MainActivity : ComponentActivity() {
@@ -285,37 +287,97 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                 targetOffsetY = { fullHeight -> fullHeight }
             )
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.scrapbook),
-                contentDescription = "Scrapbook",
-                contentScale = ContentScale.Fit,
+            Box(
                 modifier = Modifier
-                    .size(600.dp)
-            )
-
-            IconButton(
-                onClick = {
-                    // Action for IconButton click (you can add functionality here)
-                },
-                modifier = Modifier
-                    .size(50.dp)
-                    .padding(top = 16.dp)  // Space between image and IconButton
+                    .fillMaxWidth()
+                    .fillMaxHeight()
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.arrow),
-                    contentDescription = "Add Task",
-                    modifier = Modifier.fillMaxSize()
+                    painter = painterResource(id = R.drawable.scrapbook),
+                    contentDescription = "Scrapbook",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .size(600.dp)
                 )
+                Box(modifier = Modifier.fillMaxSize()) {
+                    IconButton(
+                        onClick = {
+                            // Action for IconButton click (you can add functionality here)
+                        },
+                        modifier = Modifier
+                            .size(100.dp)
+                            .padding(top = 16.dp)
+                            .align(Alignment.BottomEnd)
+                        // Space between image and IconButton
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.arrow),
+                            contentDescription = "Add Task",
+                            modifier = Modifier
+
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+
+                        //functionality later
+                        },
+                        modifier = Modifier
+                            .size(100.dp)
+                            .padding(top = 16.dp)
+                            .align(Alignment.BottomStart)
+
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.arrow),
+                            contentDescription = "Add Task",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer(
+                                    scaleX = -1f,
+                                    scaleY = 1f
+
+                                )
+                        )
+
+
+                    //Icon to return to menu:
+
+                    }
+
+                    IconButton(
+                        onClick = {isScrapbookVisible.value = !isScrapbookVisible.value},
+                    modifier = Modifier.size(100.dp)
+                                .padding(top = 16.dp)
+                                 .align(Alignment.BottomCenter)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(500.dp)
+                                .background(
+                                    Color(0xFF71412C),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.home),
+                                contentDescription = "Scrapbook",
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .align(Alignment.Center),
+                                colorFilter = ColorFilter.tint(Color.White)
+                            )
+                        }
+
+
+                    }
+
+
+                }
             }
         }
-
-
-
-
-
-
-            }
-        }
+    }
+}
 
 
 
