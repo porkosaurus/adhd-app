@@ -1,6 +1,7 @@
 package com.example.myapplication
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -13,13 +14,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,11 +42,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import com.example.myapplication.R
 import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.graphicsLayer
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.platform.LocalContext
+import android.content.Context // needed if you reference Context directly
 
 
+// Data class representing a task. The isChecked field is wrapped in a mutable state.
+data class Task(val name: String, val isChecked: androidx.compose.runtime.MutableState<Boolean> = mutableStateOf(false))
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,13 +67,67 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
+fun BuzzIconButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    val context = LocalContext.current
+    IconButton(
+        onClick = {
+            // Trigger the buzz (vibration) effect
+            val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            vibrator?.let {
+                if (it.hasVibrator()) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        it.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
+                    } else {
+                        it.vibrate(100)
+                    }
+                }
+            }
+            // Then execute the provided onClick action
+            onClick()
+        },
+        modifier = modifier
+    ) {
+        content()
+    }
+}
+
+
+@Composable
 fun MainPageUI(isTaskWindowVisible: Boolean) {
     // Controls the sliding task window
     val isWindowVisible = remember { mutableStateOf(isTaskWindowVisible) }
-    // State for three tasks: Work out, Meditate, Study
-    val tasksState = remember { mutableStateListOf(false, false, false) }
+    // Dynamic list of tasks starting empty
+    val tasksState = remember { mutableStateListOf<Task>() }
     // Level state (starting at 1)
     val level = remember { mutableStateOf(1) }
+    // Controls visibility of the Add Task popup
+    val showAddTaskDialog = remember { mutableStateOf(false) }
+
+    // Get the current context to access resources
+    val context = LocalContext.current
+
+    // Recalculate the flower resource ID whenever the level changes
+    val flowerResourceId = remember(level.value) {
+        // Build the resource name dynamically based on level value
+        val flowerResourceName = "stage${level.value}_lily"
+        // Look up the drawable resource id
+        context.resources.getIdentifier(
+            flowerResourceName,
+            "drawable",
+            context.packageName
+        )
+    }
+
+    // Fallback to a default image if the resource is not found (e.g., stage1_lily)
+    val flowerPainter = if (flowerResourceId != 0) {
+        painterResource(id = flowerResourceId)
+    } else {
+        painterResource(id = R.drawable.stage1_lily)
+    }
 
     // Controls the scrapbook task window
     val isScrapbookVisible = remember { mutableStateOf(isTaskWindowVisible) }
@@ -80,15 +149,14 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
 
 
     // Watch for all tasks to be completed; if so, level up and reset tasks.
-    LaunchedEffect(tasksState.toList()) {
-        if (tasksState.all { it } && tasksState.isNotEmpty()) {
-            // Optional: delay to let the user see all tasks complete
+    LaunchedEffect(tasksState.count { it.isChecked.value }) {
+        val completedCount = tasksState.count { it.isChecked.value }
+        Log.d("MainPageUI", "Completed tasks count: $completedCount")
+        if (tasksState.isNotEmpty() && tasksState.all { it.isChecked.value }) {
             delay(300)
-            level.value = level.value + 1
-            // Reset tasks back to false (unchecked)
-            for (i in tasksState.indices) {
-                tasksState[i] = false
-            }
+            level.value += 1  // Increase level
+            Log.d("MainPageUI", "Level updated to: ${level.value}")
+            tasksState.forEach { it.isChecked.value = false }  // Reset checkboxes
         }
     }
 
@@ -109,14 +177,14 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                 .fillMaxWidth()
                 .weight(1f)
         ) {
-            // Flower Image
+            // Updated Flower Image using the dynamic flowerPainter
             Image(
-                painter = painterResource(id = R.drawable.flower),
+                painter = flowerPainter,
                 contentDescription = "Flower",
                 modifier = Modifier
                     .size(450.dp)
                     .align(Alignment.BottomCenter)
-                    .offset(y = if (isWindowVisible.value) 12.dp else (-135).dp),
+                    .offset(y = if (isWindowVisible.value) 12.dp else (-12).dp),
                 contentScale = ContentScale.Crop
             )
 
@@ -133,7 +201,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
             )
 
             // Progress Bar – green segments based on tasks completed
-            val completedCount = tasksState.count { it }
+            val completedCount = tasksState.count { it.isChecked.value }
             Row(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -144,6 +212,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 for (i in 0 until 3) {
+
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -177,7 +246,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
             )
 
             // Task Icon (Top Right) - toggles the task window
-            IconButton(
+            BuzzIconButton(
                 onClick = { isWindowVisible.value = !isWindowVisible.value },
                 modifier = Modifier
                     .size(100.dp)
@@ -205,7 +274,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
             }
 
             // Scrapbook Icon (Bottom Right)
-            IconButton(
+            BuzzIconButton(
                 onClick = { isScrapbookVisible.value = !isScrapbookVisible.value },
                 modifier = Modifier
                     .size(130.dp)
@@ -233,7 +302,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
             }
         }
 
-        // Sliding Task Window
+        // Sliding Task Window remains unchanged...
         AnimatedVisibility(
             visible = isWindowVisible.value,
             enter = slideInVertically(
@@ -252,37 +321,31 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                     .background(Color(0xFFF5F5DC))
                     .padding(16.dp)
             ) {
-                // Task rows – each toggles its checked state
-                TaskRow(
-                    taskName = "Work out",
-                    isChecked = tasksState[0],
-                    onToggle = { tasksState[0] = !tasksState[0] }
-                )
-                TaskRow(
-                    taskName = "Meditate",
-                    isChecked = tasksState[1],
-                    onToggle = { tasksState[1] = !tasksState[1] }
-                )
-                TaskRow(
-                    taskName = "Study",
-                    isChecked = tasksState[2],
-                    onToggle = { tasksState[2] = !tasksState[2] }
-                )
-                // Plus icon row for adding more tasks (if needed)
+                tasksState.forEachIndexed { index, task ->
+                    TaskRow(
+                        taskName = task.name,
+                        isChecked = task.isChecked.value,
+                        onToggle = { task.isChecked.value = !task.isChecked.value },
+                        onDelete = { tasksState.remove(task) } // Remove the task from the list
+                    )
+                }
                 Row(
                     modifier = Modifier
-                        .weight(1f)
                         .fillMaxWidth()
                         .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End
                 ) {
-                    Image(
-                        imageVector = Add,
-                        contentDescription = "Add",
-                        modifier = Modifier.size(48.dp),
-                        colorFilter = ColorFilter.tint(Color.Black)
-                    )
+                    if (tasksState.size < 3) {
+                        Image(
+                            imageVector = Add,
+                            contentDescription = "Add",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clickable { showAddTaskDialog.value = true },
+                            colorFilter = ColorFilter.tint(Color.Black)
+                        )
+                    }
                 }
             }
         }
@@ -333,8 +396,9 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
 
                 )
                 Box(modifier = Modifier.fillMaxSize()) {
-                    IconButton(
-                        onClick = { //Right Arrow
+
+                    BuzzIconButton(
+                        onClick = {
                             // Action for IconButton click (you can add functionality here)
                             flowerIndex.value = (flowerIndex.value + 1) % flowers.size
                         },
@@ -351,10 +415,10 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
 
                         )
                     }
-                    IconButton(
-                        onClick = { //Left Arrow
-                            flowerIndex.value = (flowerIndex.value - 1 + flowers.size) % flowers.size
-                            //functionality later
+
+                    BuzzIconButton(
+                        onClick = {
+                         flowerIndex.value = (flowerIndex.value - 1 + flowers.size) % flowers.size
                         },
                         modifier = Modifier
                             .size(100.dp)
@@ -379,7 +443,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
 
                     }
 
-                    IconButton(
+                    BuzzIconButton(
                         onClick = {isScrapbookVisible.value = !isScrapbookVisible.value},
                         modifier = Modifier.size(100.dp)
                             .padding(top = 16.dp)
@@ -411,19 +475,57 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
             }
         }
     }
+
+    // Add Task Popup Dialog remains unchanged...
+    if (showAddTaskDialog.value) {
+        var newTaskName by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showAddTaskDialog.value = false },
+            title = { Text("Add Task") },
+            text = {
+                OutlinedTextField(
+                    value = newTaskName,
+                    onValueChange = { newTaskName = it },
+                    label = { Text("Task Name") }
+                )
+            },
+            confirmButton = {
+                BuzzIconButton(onClick = {
+                    if (newTaskName.isNotBlank() && tasksState.size < 3) {
+                        tasksState.add(Task(newTaskName))
+                    }
+                    showAddTaskDialog.value = false
+                }) {
+                    Text("Add")
+                }
+            },
+            dismissButton = {
+                BuzzIconButton(onClick = {
+                    showAddTaskDialog.value = false
+                }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 
 
 @Composable
-fun TaskRow(taskName: String, isChecked: Boolean, onToggle: () -> Unit) {
+fun TaskRow(
+    taskName: String,
+    isChecked: Boolean,
+    onToggle: () -> Unit,
+    onDelete: () -> Unit // Lambda to handle task deletion
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
-            .clickable { onToggle() },
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Task Name
         Text(
             text = taskName,
             fontSize = 32.sp,
@@ -431,25 +533,48 @@ fun TaskRow(taskName: String, isChecked: Boolean, onToggle: () -> Unit) {
             color = Color.Black,
             modifier = Modifier.weight(1f)
         )
+
         if (isChecked) {
-            Image(
-                imageVector = Check_box,
-                contentDescription = "Checked",
-                modifier = Modifier.size(40.dp),
-                colorFilter = ColorFilter.tint(Color.Black)
-            )
+            BuzzIconButton(
+                onClick = { onToggle() },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Image(
+                    imageVector = Check_box,
+                    contentDescription = "Checked",
+                    modifier = Modifier.fillMaxSize(),
+                    colorFilter = ColorFilter.tint(Color.Black)
+                )
+            }
         } else {
+            BuzzIconButton(
+                onClick = { onToggle() },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Image(
+                    imageVector = Check_box_outline_blank,
+                    contentDescription = "Unchecked",
+                    modifier = Modifier.fillMaxSize(),
+                    colorFilter = ColorFilter.tint(Color.Black)
+                )
+            }
+        }
+
+
+        // Delete Button (Trash Icon)
+        BuzzIconButton(
+            onClick = onDelete, // Call the onDelete lambda when clicked
+            modifier = Modifier.size(40.dp)
+        ) {
             Image(
-                imageVector = Check_box_outline_blank,
-                contentDescription = "Unchecked",
-                modifier = Modifier.size(40.dp),
+                imageVector = Trash,
+                contentDescription = "Delete",
+                modifier = Modifier.size(24.dp),
                 colorFilter = ColorFilter.tint(Color.Black)
             )
         }
     }
 }
-
-//ICON ROWS
 
 @Preview(showBackground = true)
 @Composable
@@ -457,6 +582,8 @@ fun PreviewMainPageUI() {
     MainPageUI(isTaskWindowVisible = false)
 
 }
+
+// Icon rows
 
 public val Lists: ImageVector
     get() {
@@ -641,6 +768,100 @@ public val Book_2: ImageVector
     }
 
 private var _Book_2: ImageVector? = null
+
+
+public val Trash: ImageVector
+    get() {
+        if (_Trash != null) {
+            return _Trash!!
+        }
+        _Trash = ImageVector.Builder(
+            name = "Trash",
+            defaultWidth = 16.dp,
+            defaultHeight = 16.dp,
+            viewportWidth = 16f,
+            viewportHeight = 16f
+        ).apply {
+            path(
+                fill = SolidColor(Color(0xFF000000)),
+                fillAlpha = 1.0f,
+                stroke = null,
+                strokeAlpha = 1.0f,
+                strokeLineWidth = 1.0f,
+                strokeLineCap = StrokeCap.Butt,
+                strokeLineJoin = StrokeJoin.Miter,
+                strokeLineMiter = 1.0f,
+                pathFillType = PathFillType.NonZero
+            ) {
+                moveTo(5.5f, 5.5f)
+                arcTo(0.5f, 0.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, 6f, 6f)
+                verticalLineToRelative(6f)
+                arcToRelative(0.5f, 0.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, -1f, 0f)
+                verticalLineTo(6f)
+                arcToRelative(0.5f, 0.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, 0.5f, -0.5f)
+                moveToRelative(2.5f, 0f)
+                arcToRelative(0.5f, 0.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, 0.5f, 0.5f)
+                verticalLineToRelative(6f)
+                arcToRelative(0.5f, 0.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, -1f, 0f)
+                verticalLineTo(6f)
+                arcToRelative(0.5f, 0.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, 0.5f, -0.5f)
+                moveToRelative(3f, 0.5f)
+                arcToRelative(0.5f, 0.5f, 0f, isMoreThanHalf = false, isPositiveArc = false, -1f, 0f)
+                verticalLineToRelative(6f)
+                arcToRelative(0.5f, 0.5f, 0f, isMoreThanHalf = false, isPositiveArc = false, 1f, 0f)
+                close()
+            }
+            path(
+                fill = SolidColor(Color(0xFF000000)),
+                fillAlpha = 1.0f,
+                stroke = null,
+                strokeAlpha = 1.0f,
+                strokeLineWidth = 1.0f,
+                strokeLineCap = StrokeCap.Butt,
+                strokeLineJoin = StrokeJoin.Miter,
+                strokeLineMiter = 1.0f,
+                pathFillType = PathFillType.NonZero
+            ) {
+                moveTo(14.5f, 3f)
+                arcToRelative(1f, 1f, 0f, isMoreThanHalf = false, isPositiveArc = true, -1f, 1f)
+                horizontalLineTo(13f)
+                verticalLineToRelative(9f)
+                arcToRelative(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, -2f, 2f)
+                horizontalLineTo(5f)
+                arcToRelative(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, -2f, -2f)
+                verticalLineTo(4f)
+                horizontalLineToRelative(-0.5f)
+                arcToRelative(1f, 1f, 0f, isMoreThanHalf = false, isPositiveArc = true, -1f, -1f)
+                verticalLineTo(2f)
+                arcToRelative(1f, 1f, 0f, isMoreThanHalf = false, isPositiveArc = true, 1f, -1f)
+                horizontalLineTo(6f)
+                arcToRelative(1f, 1f, 0f, isMoreThanHalf = false, isPositiveArc = true, 1f, -1f)
+                horizontalLineToRelative(2f)
+                arcToRelative(1f, 1f, 0f, isMoreThanHalf = false, isPositiveArc = true, 1f, 1f)
+                horizontalLineToRelative(3.5f)
+                arcToRelative(1f, 1f, 0f, isMoreThanHalf = false, isPositiveArc = true, 1f, 1f)
+                close()
+                moveTo(4.118f, 4f)
+                lineTo(4f, 4.059f)
+                verticalLineTo(13f)
+                arcToRelative(1f, 1f, 0f, isMoreThanHalf = false, isPositiveArc = false, 1f, 1f)
+                horizontalLineToRelative(6f)
+                arcToRelative(1f, 1f, 0f, isMoreThanHalf = false, isPositiveArc = false, 1f, -1f)
+                verticalLineTo(4.059f)
+                lineTo(11.882f, 4f)
+                close()
+                moveTo(2.5f, 3f)
+                horizontalLineToRelative(11f)
+                verticalLineTo(2f)
+                horizontalLineToRelative(-11f)
+                close()
+            }
+        }.build()
+        return _Trash!!
+    }
+
+private var _Trash: ImageVector? = null
+
 
 public val Add: ImageVector
     get() {
