@@ -68,9 +68,37 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MainPageUI(isTaskWindowVisible = false)
+            MainApp()
         }
     }
+}
+
+@Composable
+fun MainApp() {
+    var isLoggedIn by remember { mutableStateOf(false) }
+    var isSigningUp by remember { mutableStateOf(false) }
+
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(id = R.drawable.background),
+            contentDescription = "Background",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+    if (isLoggedIn) {
+        MainPageUI(isTaskWindowVisible = false)
+    } else if (isSigningUp) {
+        SignUpScreen(onSignUpSuccess = {
+            isSigningUp = false
+            isLoggedIn = true
+        }, onBackToLogin = {
+            isSigningUp = false
+        })
+    } else {
+        LoginSignUpScreen(onLoginSuccess = { isLoggedIn = true }, onNavigateToSignUp = { isSigningUp = true })
+    }
+}
 }
 
 @Composable
@@ -273,10 +301,11 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
             }
 
             // Scrapbook Icon (Bottom Right)
+            if(!isWindowVisible.value){
             BuzzIconButton(
                 onClick = { isScrapbookVisible.value = !isScrapbookVisible.value },
                 modifier = Modifier
-                    .size(130.dp)
+                    .size(110.dp)
                     .align(Alignment.BottomEnd)
                     .padding(16.dp)
                     .offset(y = (-20).dp)
@@ -299,6 +328,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                     )
                 }
             }
+        }
         }
 
         // Sliding Task Window with date display, task list, plus button, and submit button
