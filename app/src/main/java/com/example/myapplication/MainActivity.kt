@@ -28,6 +28,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.PathFillType
@@ -46,6 +48,11 @@ import androidx.compose.ui.platform.LocalContext
 import com.example.myapplication.R
 import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.graphicsLayer
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Calendar
+import java.text.SimpleDateFormat
+import java.util.Locale
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -98,14 +105,20 @@ fun BuzzIconButton(
 
 @Composable
 fun MainPageUI(isTaskWindowVisible: Boolean) {
-    // Controls the sliding task window
     val isWindowVisible = remember { mutableStateOf(isTaskWindowVisible) }
-    // Dynamic list of tasks starting empty
     val tasksState = remember { mutableStateListOf<Task>() }
-    // Level state (starting at 1)
     val level = remember { mutableStateOf(1) }
-    // Controls visibility of the Add Task popup
+    val points = remember { mutableStateOf(0) }  // <-- New points state
     val showAddTaskDialog = remember { mutableStateOf(false) }
+
+    // New state for tracking the current day – starting January 1, 2023.
+    val currentCalendar = remember {
+        Calendar.getInstance().apply {
+            set(2023, Calendar.JANUARY, 1)
+        }
+    }
+    // Formatter for displaying the date (e.g., "January 1")
+    val dateFormat = SimpleDateFormat("MMMM d", Locale.getDefault())
 
     // Get the current context to access resources
     val context = LocalContext.current
@@ -147,19 +160,6 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
 
 
 
-
-    // Watch for all tasks to be completed; if so, level up and reset tasks.
-    LaunchedEffect(tasksState.count { it.isChecked.value }) {
-        val completedCount = tasksState.count { it.isChecked.value }
-        Log.d("MainPageUI", "Completed tasks count: $completedCount")
-        if (tasksState.isNotEmpty() && tasksState.all { it.isChecked.value }) {
-            delay(300)
-            level.value += 1  // Increase level
-            Log.d("MainPageUI", "Level updated to: ${level.value}")
-            tasksState.forEach { it.isChecked.value = false }  // Reset checkboxes
-        }
-    }
-
     // Background Image
     Image(
         painter = painterResource(id = R.drawable.background),
@@ -200,8 +200,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                     .padding(top = 32.dp)
             )
 
-            // Progress Bar – green segments based on tasks completed
-            val completedCount = tasksState.count { it.isChecked.value }
+            // Progress Bar – green segments based on points accumulated
             Row(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -211,18 +210,17 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                     .height(16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                for (i in 0 until 3) {
-
+                for (i in 0 until 5) {
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
                             .background(
-                                color = if (i < completedCount) Color.Green else Color.Gray,
+                                color = if (i < points.value) Color.Green else Color.Gray,
                                 shape = RoundedCornerShape(8.dp)
                             )
                     )
-                    if (i < 2) {
+                    if (i < 4) {
                         Spacer(
                             modifier = Modifier
                                 .width(4.dp)
@@ -233,9 +231,9 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                 }
             }
 
-            // Text Below Progress Bar
+            // Text Below Progress Bar showing remaining tasks for next level
             Text(
-                text = "Only 9 days until your next level up!",
+                text = "Only ${5 - points.value} tasks until your next level!",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color.Black,
@@ -244,6 +242,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                     .padding(top = 120.dp)
                     .offset(y = if (isWindowVisible.value) (-200).dp else 0.dp)
             )
+
 
             // Task Icon (Top Right) - toggles the task window
             BuzzIconButton(
@@ -302,7 +301,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
             }
         }
 
-        // Sliding Task Window remains unchanged...
+        // Sliding Task Window with date display, task list, plus button, and submit button
         AnimatedVisibility(
             visible = isWindowVisible.value,
             enter = slideInVertically(
@@ -321,14 +320,25 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                     .background(Color(0xFFF5F5DC))
                     .padding(16.dp)
             ) {
+                // Display current day at the top
+                Text(
+                    text = "Date: ${dateFormat.format(currentCalendar.time)}",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                // Render each task row
                 tasksState.forEachIndexed { index, task ->
                     TaskRow(
                         taskName = task.name,
                         isChecked = task.isChecked.value,
                         onToggle = { task.isChecked.value = !task.isChecked.value },
-                        onDelete = { tasksState.remove(task) } // Remove the task from the list
+                        onDelete = { tasksState.remove(task) }
                     )
                 }
+
+                // Plus Button to add new tasks (visible only when less than 3 tasks exist)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -336,7 +346,7 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End
                 ) {
-                    if (tasksState.size < 3) {
+                    if (tasksState.size < 6) {
                         Image(
                             imageVector = Add,
                             contentDescription = "Add",
@@ -347,10 +357,39 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                         )
                     }
                 }
+
+                // Submit Button – advances the day, adds points, updates level (and image), and resets the checklist
+                Button(
+                    onClick = {
+                        // Count checked tasks and add that many points
+                        val completedCount = tasksState.count { it.isChecked.value }
+                        points.value += completedCount
+
+                        // Check if enough points have been earned (5 points needed per level)
+                        if (points.value >= 5) {
+                            val levelsGained = points.value / 5  // Calculate how many levels to increase
+                            level.value += levelsGained         // Update level which triggers the flower image update
+                            points.value %= 5                   // Retain any leftover points
+                        }
+
+                        Log.d("MainPageUI", "Completed tasks: $completedCount, Points: ${points.value}, Level: ${level.value}")
+
+                        // Reset all task checkboxes
+                        tasksState.forEach { it.isChecked.value = false }
+
+                        // Advance the day
+                        currentCalendar.add(Calendar.DAY_OF_MONTH, 1)
+                    },
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(top = 16.dp)
+                ) {
+                    Text(text = "Submit")
+                }
+
+
             }
         }
-
-
         // Sliding Task Window for ScrapBook
         AnimatedVisibility(
             visible = isScrapbookVisible.value,
@@ -490,8 +529,9 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
                 )
             },
             confirmButton = {
+
                 BuzzIconButton(onClick = {
-                    if (newTaskName.isNotBlank() && tasksState.size < 3) {
+                    if (newTaskName.isNotBlank() && tasksState.size < 6) {
                         tasksState.add(Task(newTaskName))
                     }
                     showAddTaskDialog.value = false
@@ -517,18 +557,28 @@ fun TaskRow(
     taskName: String,
     isChecked: Boolean,
     onToggle: () -> Unit,
-    onDelete: () -> Unit // Lambda to handle task deletion
+    onDelete: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 8.dp)
+            // Draw a thin black bottom border for the entire task row
+            .drawBehind {
+                val strokeWidth = 1.dp.toPx()
+                drawLine(
+                    color = Color.Black,
+                    start = Offset(0f, size.height),
+                    end = Offset(size.width, size.height),
+                    strokeWidth = strokeWidth
+                )
+            },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Task Name
+        // Increase the font size for the task name
         Text(
             text = taskName,
-            fontSize = 32.sp,
+            fontSize = 40.sp,
             fontWeight = FontWeight.Medium,
             color = Color.Black,
             modifier = Modifier.weight(1f)
@@ -537,7 +587,7 @@ fun TaskRow(
         if (isChecked) {
             BuzzIconButton(
                 onClick = { onToggle() },
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(48.dp)
             ) {
                 Image(
                     imageVector = Check_box,
@@ -549,7 +599,7 @@ fun TaskRow(
         } else {
             BuzzIconButton(
                 onClick = { onToggle() },
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(48.dp)
             ) {
                 Image(
                     imageVector = Check_box_outline_blank,
@@ -564,17 +614,18 @@ fun TaskRow(
         // Delete Button (Trash Icon)
         BuzzIconButton(
             onClick = onDelete, // Call the onDelete lambda when clicked
-            modifier = Modifier.size(40.dp)
+            modifier = Modifier.size(48.dp)
         ) {
             Image(
                 imageVector = Trash,
                 contentDescription = "Delete",
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(28.dp),
                 colorFilter = ColorFilter.tint(Color.Black)
             )
         }
     }
 }
+
 
 @Preview(showBackground = true)
 @Composable
