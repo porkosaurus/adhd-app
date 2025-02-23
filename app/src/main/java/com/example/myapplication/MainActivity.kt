@@ -62,6 +62,17 @@ fun MainPageUI(isTaskWindowVisible: Boolean) {
     // Controls the scrapbook task window
     val isScrapbookVisible = remember { mutableStateOf(isTaskWindowVisible) }
 
+    val flowerIndex = remember { mutableStateOf(0) }
+
+    val flowers = listOf(
+        R.drawable.flower1,
+        R.drawable.flower2,
+        R.drawable.flower3
+
+    )
+
+
+
 
 
 
